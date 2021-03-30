@@ -1,0 +1,26 @@
+{
+  "name": "pix-editor-ext",
+  "version": "2.4.0",
+  "description": "Ouvre une épreuve Pix dans pix-editor",
+  "author": "GIP Pix",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/1024pix/pix-editor-ext.git"
+  },
+  "homepage": "https://github.com/1024pix/pix-editor-ext#README",
+  "bugs": {
+    "url": "https://github.com/1024pix/pix-editor-ext/issues"
+  },
+  "main": "start",
+  "dependencies": {},
+  "devDependencies": {
+    "web-ext": "^5.5.0"
+  },
+  "scripts": {
+    "dev": "web-ext run",
+    "dev:firefox": "npm run dev -- --target firefox-desktop",
+    "dev:chrome": "npm run dev -- --target chromium",
+    "generate-signed": "web-ext sign --api-key=${MOZILLA_API_KEY} --api-secret=${MOZILLA_SECRET}"
+  }
+}
