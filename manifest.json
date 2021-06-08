@@ -23,7 +23,8 @@
     "permissions": [
       "activeTab",
       "storage",
-      "tabs"
+      "tabs",
+      "notifications"
     ]
 
   }

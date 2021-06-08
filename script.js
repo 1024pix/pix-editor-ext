@@ -1,22 +1,23 @@
 /* eslint-disable no-undef */
 const editorPath = 'https://editor.pix.fr';
-const STORAGE_TOKEN_KEY = 'token';
+const STORAGE_CREDENTIALS_KEY = 'credentials';
 
-let token = '';
+let credentials = '';
 
-refreshToken();
-browser.storage.onChanged.addListener(refreshToken);
+refreshCredentials();
+browser.storage.onChanged.addListener(refreshCredentials);
 
-function refreshToken() {
-  browser.storage.local.get(STORAGE_TOKEN_KEY, setToken);
+function refreshCredentials() {
+  browser.storage.local.get(STORAGE_CREDENTIALS_KEY, setCredentials);
 }
-function setToken(result) {
-  token = result[STORAGE_TOKEN_KEY] || '';
+function setCredentials(result) {
+  credentials = result[STORAGE_CREDENTIALS_KEY] || '';
 
-  if (token) {
+  if (credentials) {
+    credentials = JSON.parse(credentials);
     keepPopupClosedAndEnableAddon();
   } else {
-    askForToken();
+    askForCredentials();
   }
 }
 
@@ -26,7 +27,7 @@ function keepPopupClosedAndEnableAddon() {
   });
 }
 
-function askForToken() {
+function askForCredentials() {
   browser.browserAction.setPopup({
     popup: browser.extension.getURL("options.html")
   });
@@ -47,12 +48,33 @@ function getBaseUrlFromTab(tab) {
   return url.protocol + '//'+ url.host;
 }
 
+async function getToken(baseUrl, { email, password }) {
+  const response = await fetch(`${baseUrl}/api/token`,  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: `grant_type=password&username=${email}&password=${password}`,
+  });
+  if (response.status === 401) {
+    throw new Error('Vérifier vos informations de connexion');
+  } else if (!response.ok) {
+    throw new Error('Erreur inattendu lors de la connexion');
+  }
+
+  const token = (await response.json()).access_token;
+  return token;
+}
+
 async function getLastChallengeId(baseUrl, token, assessmentId) {
   const response = await fetch(`${baseUrl}/api/assessments/${assessmentId}/last-challenge-id`, {
     headers: {
       'Authorization': `Bearer ${token}`,
     }
   });
+  if (!response.ok) {
+    throw new Error('Erreur lors de la récupération de l\'id de l\'épreuve. Êtes vous Pix Master ?');
+  }
   const lastChallengeId = await response.text();
 
   return lastChallengeId;
@@ -80,17 +102,26 @@ browser.browserAction.onClicked.addListener(function() {
   browser.tabs.query({ active: true, lastFocusedWindow: true }, async function (tabs) {
     const assessmentId = getAssessmentIdFromTab(tabs[0]);
     if (assessmentId) {
-      const baseUrl = getBaseUrlFromTab(tabs[0]);
-      const challengeId = await getLastChallengeId(baseUrl, token, assessmentId);
-      const editorUrl = editorPath + '/#/challenge/' + challengeId;
-      browser.tabs.query({ title: 'Pix Editor' }, function(tabs) {
-        if (tabs && tabs.length > 0) {
-          const tab = tabs[0];
-          browser.tabs.update(tab.id, { url: editorUrl, active: true });
-        } else {
-          browser.tabs.create({ url: editorUrl, active: true });
-        }
-      });
+      try {
+        const baseUrl = getBaseUrlFromTab(tabs[0]);
+        const token = await getToken(baseUrl, credentials);
+        const challengeId = await getLastChallengeId(baseUrl, token, assessmentId);
+        const editorUrl = editorPath + '/#/challenge/' + challengeId;
+        browser.tabs.query({ title: 'Pix Editor' }, function(tabs) {
+          if (tabs && tabs.length > 0) {
+            const tab = tabs[0];
+            browser.tabs.update(tab.id, { url: editorUrl, active: true });
+          } else {
+            browser.tabs.create({ url: editorUrl, active: true });
+          }
+        });
+      } catch (e) {
+        browser.notifications.create('pix-editor', {
+          type: 'basic',
+          title: 'Une erreur est survenue',
+          message: e.message
+        });
+      }
     }
   });
 });
