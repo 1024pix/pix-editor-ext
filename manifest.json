@@ -7,17 +7,24 @@
 
     "browser_action": {
       "default_icon": "icon.png",
-      "default_title": "Pix Editor"
+      "default_title": "Ouvrir dans Pix Editor",
+      "default_popup": "options.html"
     },
 
     "background": {
       "scripts": ["script.js"]
     },
 
+
+    "options_ui": {
+      "page": "options.html"
+    },
+
     "permissions": [
       "activeTab",
       "storage",
-      "tabs"
+      "tabs",
+      "notifications"
     ]
 
   }
