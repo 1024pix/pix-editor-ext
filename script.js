@@ -54,7 +54,11 @@ async function getToken(baseUrl, { email, password }) {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body: `grant_type=password&username=${email}&password=${password}`,
+    body: new URLSearchParams({
+      username: email,
+      password,
+      'grant_type': 'password'
+    }),
   });
   if (response.status === 401) {
     throw new Error('Vérifier vos informations de connexion');
