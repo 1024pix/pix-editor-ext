@@ -15,7 +15,7 @@
   "main": "start",
   "dependencies": {},
   "devDependencies": {
-    "web-ext": "^5.5.0"
+    "web-ext": "^7.0.0"
   },
   "scripts": {
     "dev": "web-ext run",
